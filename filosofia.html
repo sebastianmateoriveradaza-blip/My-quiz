@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Filosofía FINAL</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: radial-gradient(circle, #0f2027, #203a43, #2c5364);
+    color: white;
+    text-align: center;
+    margin: 0;
+    overflow: hidden;
+}
+
+.container {
+    margin-top: 40px;
+    position: relative;
+    z-index: 2;
+}
+
+h1 {
+    font-size: 45px;
+    text-shadow: 0 0 20px cyan;
+}
+
+button {
+    display: block;
+    width: 60%;
+    margin: 10px auto;
+    padding: 15px;
+    font-size: 18px;
+    border-radius: 15px;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.1);
+}
+
+.correct { background: #00e676 !important; }
+.wrong { background: #ff1744 !important; }
+
+.btn1 { background:#ff5252; }
+.btn2 { background:#ff9800; }
+.btn3 { background:#4caf50; }
+.btn4 { background:#2196f3; }
+
+#quiz, #end {
+    display: none;
+}
+
+.progress {
+    width: 80%;
+    height: 15px;
+    background: #555;
+    margin: 20px auto;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, cyan, lime);
+    border-radius: 10px;
+}
+
+.timer {
+    font-size: 24px;
+    text-shadow: 0 0 10px yellow;
+}
+
+#bigMessage {
+    position: fixed;
+    top: 40%;
+    width: 100%;
+    font-size: 60px;
+    font-weight: bold;
+    display: none;
+    z-index: 10;
+}
+
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+<div id="bigMessage"></div>
+
+<div class="container">
+<h1>🎮 Quiz Filosofía</h1>
+
+<div id="menu">
+    <button onclick="startQuiz()">🚀 Empezar</button>
+</div>
+
+<div id="quiz">
+    <div class="timer">⏱️ <span id="time">10</span></div>
+    <div class="progress"><div id="progress" class="progress-bar"></div></div>
+
+    <h2 id="question"></h2>
+    <div id="answers"></div>
+</div>
+
+<div id="end">
+    <h2 id="finalMessage"></h2>
+    <h3 id="score"></h3>
+    <button onclick="location.reload()">🔄 Reintentar</button>
+</div>
+</div>
+
+<script>
+// FONDO
+let canvas = document.getElementById("bg");
+let ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let particles=[];
+for(let i=0;i<60;i++){
+particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*2,d:Math.random()*2});
+}
+
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.fillStyle="white";
+particles.forEach(p=>{
+ctx.beginPath();
+ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+ctx.fill();
+p.y+=p.d;
+if(p.y>canvas.height)p.y=0;
+});
+}
+setInterval(draw,30);
+
+// QUIZ
+let current=0, score=0, time=10, timer;
+
+const questions=[
+{q:"¿Quién decía que el agua es el origen?",a:["Anaxímenes","Tales","Heráclito","Parménides"],c:1},
+{q:"¿Qué elemento proponía Anaxímenes?",a:["Aire","Fuego","Agua","Tierra"],c:0},
+{q:"¿Quién decía 'todo fluye'?",a:["Heráclito","Demócrito","Pitágoras","Parménides"],c:0},
+{q:"¿Quién habló de los átomos?",a:["Demócrito","Tales","Parménides","Pitágoras"],c:0},
+{q:"¿Quién decía que nada cambia?",a:["Parménides","Heráclito","Tales","Anaxímenes"],c:0},
+{q:"¿Quién relacionaba números con el universo?",a:["Pitágoras","Demócrito","Tales","Heráclito"],c:0},
+{q:"¿Qué significa 'arjé'?",a:["Origen o principio","Número","Fuego","Movimiento"],c:0},
+{q:"¿Quién propuso el 'apeiron'?",a:["Anaximandro","Tales","Pitágoras","Heráclito"],c:0},
+{q:"¿Qué afirmaba Parménides?",a:["El ser es único e inmóvil","Todo cambia","Todo es fuego","Todo es agua"],c:0},
+{q:"¿Qué proponía Demócrito?",a:["Átomos y vacío","Fuego eterno","Aire infinito","Números"],c:0}
+];
+
+function startQuiz(){
+document.getElementById("menu").style.display="none";
+document.getElementById("quiz").style.display="block";
+showQuestion();
+}
+
+function showQuestion(){
+resetTimer();
+let q=questions[current];
+document.getElementById("question").innerText=q.q;
+
+let colors=["btn1","btn2","btn3","btn4"];
+let html="";
+q.a.forEach((ans,i)=>{
+html+=`<button class="${colors[i]}" onclick="answer(${i})">${ans}</button>`;
+});
+document.getElementById("answers").innerHTML=html;
+updateBar();
+}
+
+function showBig(text,color){
+let div=document.getElementById("bigMessage");
+div.innerText=text;
+div.style.color=color;
+div.style.display="block";
+setTimeout(()=>{div.style.display="none";},1000);
+}
+
+function answer(i){
+clearInterval(timer);
+let correct=questions[current].c;
+let buttons=document.querySelectorAll("#answers button");
+
+buttons.forEach((b,index)=>{
+if(index===correct)b.classList.add("correct");
+if(index===i && i!==correct)b.classList.add("wrong");
+b.disabled=true;
+});
+
+if(i===correct){
+score++;
+showBig("✅ CORRECTO","#00e676");
+confetti();
+}else{
+showBig("❌ INCORRECTO","#ff1744");
+}
+
+setTimeout(()=>{
+current++;
+if(current>=questions.length) endGame();
+else showQuestion();
+},1200);
+}
+
+function resetTimer(){
+time=10;
+document.getElementById("time").innerText=time;
+
+timer=setInterval(()=>{
+time--;
+document.getElementById("time").innerText=time;
+
+if(time<=0){
+clearInterval(timer);
+showBig("⏱️ TIEMPO!","yellow");
+current++;
+if(current>=questions.length) endGame();
+else setTimeout(showQuestion,1000);
+}
+},1000);
+}
+
+function updateBar(){
+let percent=(current/questions.length)*100;
+document.getElementById("progress").style.width=percent+"%";
+}
+
+function endGame(){
+document.getElementById("quiz").style.display="none";
+document.getElementById("end").style.display="block";
+
+document.getElementById("score").innerText=`Puntaje: ${score}/${questions.length}`;
+
+let msg = score===questions.length ? "🏆 PERFECTO!" : "🔥 Buen intento!";
+document.getElementById("finalMessage").innerText=msg;
+}
+
+function confetti(){
+for(let i=0;i<30;i++){
+let div=document.createElement("div");
+div.style.position="fixed";
+div.style.left=Math.random()*100+"%";
+div.style.top="0";
+div.style.width="6px";
+div.style.height="10px";
+div.style.background="hsl("+Math.random()*360+",100%,50%)";
+document.body.appendChild(div);
+
+let fall=setInterval(()=>{
+div.style.top=parseInt(div.style.top)+5+"px";
+if(parseInt(div.style.top)>window.innerHeight){
+clearInterval(fall);
+div.remove();
+}
+},20);
+}
+}
+</script>
+
+</body>
+</html>
